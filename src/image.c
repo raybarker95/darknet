@@ -243,6 +243,9 @@ void draw_detections(image im, detection *dets, int num, float thresh, char **na
     for(i = 0; i < num; ++i){
         char labelstr[4096] = {0};
         int class = -1;
+
+	float detect_probability = 0;
+
         for(j = 0; j < classes; ++j){
             if (dets[i].prob[j] > thresh){
                 if (class < 0) {
@@ -251,11 +254,19 @@ void draw_detections(image im, detection *dets, int num, float thresh, char **na
                 } else {
                     strcat(labelstr, ", ");
                     strcat(labelstr, names[j]);
+		    
+		    
                 }
-                printf("%s: %.0f%%\n", names[j], dets[i].prob[j]*100);
+		if (class == 0){
+		    detect_probability =  dets[i].prob[j]*100;
+                    printf("%s: %.0f%%\n", names[j], dets[i].prob[j]*100);
+		}
             }
         }
-        if(class >= 0){
+        if(class == 0){
+
+         snprintf(labelstr, sizeof labelstr, "%s - %.1f%%",names[0], detect_probability);
+
             int width = im.h * .006;
 
             /*
