@@ -1,9 +1,8 @@
 from ctypes import *
 import math
 import random
-import tkinter as tk
-import tkinter as tk
-from tkinter import filedialog
+import Tkinter as tk
+import tkFileDialog as filedialog
 from PIL import Image, ImageTk
 import cv2
 import os
@@ -164,6 +163,16 @@ def stop_live_detection():
     print("Live detection stopping...")
     
 def run_detection():
+    global net
+    global meta
+
+    # Load net and meta data
+    if net is None or meta is None:
+        print ("Loading net and meta data")
+        net = load_net("cfg/yolov3.cfg", "yolov3.weights", 0)
+        meta = load_meta("cfg/coco.data")   
+    
+
     print ("-----\nRunning detection")
     
     image_in_path = "data/person.jpg"
@@ -194,14 +203,6 @@ def run_detection():
     img_box.image = img_out
     
 if __name__ == "__main__":
-    global net
-    global meta
-    
-    # Load net and meta data
-    print ("Loading net and meta data")
-    net = load_net("cfg/yolov3.cfg", "yolov3.weights", 0)
-    meta = load_meta("cfg/coco.data")   
-    
     # Setup GUI
     print ("Loading GUI")
     root = tk.Tk()
