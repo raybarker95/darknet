@@ -60,6 +60,19 @@ sudo pip install Pillow
 
 sudo pip install opencv-python
 
+## Usage ##
+** Start GUI **
+
+python2 ./pedestrian_detector.py
+
+** Process Single Image **
+
+Press "Load Image". There may be a delay the first time as the software loads the model. Select an image using the file dialog. An image will be shown in the GUI indicating the position of the detected pedestrians with a bounding box and % certainty.
+
+** Run Live Detection **
+
+Quit the application and re-start to ensure all GPU resources free/available for live processing. Press "Start Live Detection" to start live detection. A window should appear, with all pedestrians shown in a bounding box with % certainty labelled. To finish, press "Stop Live Detection".
+
 # Forked from Darknet #
 ![Darknet Logo](http://pjreddie.com/media/files/darknet-black-small.png)
 
