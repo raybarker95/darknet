@@ -258,6 +258,12 @@ def set_batch_wait(arg):
      next_batch_image.set(not next_batch_image.get())
 
 if __name__ == "__main__":
+    
+    # Create required folder structure
+    if not os.path.exists("output"):
+        print "Creating output folder"
+        os.makedirs("output")
+    
     # Setup GUI
     print ("Loading GUI")
     root = tk.Tk()
