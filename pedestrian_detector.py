@@ -7,7 +7,8 @@ from PIL import Image, ImageTk
 import cv2
 import os
 import subprocess
-
+from glob import glob
+import time
 live_detector = None
 net = None
 meta = None
@@ -161,8 +162,8 @@ def stop_live_detection():
     global live_detector
     live_detector.terminate()
     print("Live detection stopping...")
-    
-def run_detection():
+
+def detect_pedestrians(filename):
     global net
     global meta
 
@@ -171,19 +172,35 @@ def run_detection():
         print ("Loading net and meta data")
         net = load_net("cfg/yolov3.cfg", "yolov3.weights", 0)
         meta = load_meta("cfg/coco.data")   
-    
 
     print ("-----\nRunning detection")
-    
-    image_in_path = "data/person.jpg"
-    image_out_path = "annotated.png"
+    start_millis = int(round(time.time() * 1000))
 
-    image_in_path = filedialog.askopenfilename()
-    
+    image_in_path = filename
+    basename = os.path.basename(image_in_path)
+    image_out_path = "output/" + os.path.splitext(basename)[0] + ".png"
+    image_resize_path = "resize.png"
+
+    # Resize image maintaining aspect ratio if too large
+    im_in = cv2.imread(image_in_path)
+    height, width = im_in.shape[:2]
+    target_height = 800
+    target_width = 1200
+    if(height > target_height or width > target_width):
+        sf = target_height / float(height)
+        if target_width / float(width) < sf:
+            sf = target_width / float(width)
+        im_in = cv2.resize(im_in, None, fx=sf, fy=sf, interpolation=cv2.INTER_AREA)
+        cv2.imwrite(image_resize_path,im_in)
+        image_in_path = image_resize_path
+
+    # Perform detection using Darknet YOLO
     detections = detect(net, meta, image_in_path)
 
+    # Prepare image for annotation
     im = cv2.imread(image_in_path)
-    
+
+    # Annotate images with bounding box and detection confidence
     for detection in detections:
         name = detection[0]
         if (name=="person"):
@@ -194,14 +211,52 @@ def run_detection():
             h = int(detection[2][3])            
             cv2.rectangle(im,(x-w/2,y-h/2),(x+w/2,y+h/2),(0,255,0),2)
             cv2.putText(im,str(round(predict,2)),(x-w/2,y-h/2-10),0,0.6,(0,255,0),2)
-    print ("Detection complete")
-    
+
+    # Save annotated image
     cv2.imwrite(image_out_path,im)
 
+    # Update image shown in GUI
     img_out = ImageTk.PhotoImage(Image.open(image_out_path))
     img_box.configure(image=img_out)
     img_box.image = img_out
+
+    duration_millis = int(round(time.time() * 1000)) - start_millis
+    print ("Detection complete, took " + str(duration_millis) + " ms")
+
+def myfunction(arg1):
+    return None
+
+def run_detection_single():
+    image_in_path = filedialog.askopenfilename()
+    print image_in_path
+    if not image_in_path:
+        print "Please select an image file"
+        return None
+    detect_pedestrians(image_in_path)
+
+def run_detection_batch():
+    image_out_path = "annotated.png"
+    folder_in_path = filedialog.askdirectory()
+    if not folder_in_path:
+        print "Please select a directory containing images"
+        return None
     
+    image_files = glob(folder_in_path + '/*.jpg')
+    image_files.extend(glob(folder_in_path + '/*.png'))
+    
+    for image in image_files:
+        detect_pedestrians(image)
+
+        # Update GUI
+        root.update_idletasks()
+
+        # Wait until enter is pressed before processing next 
+        root.wait_variable(next_batch_image)
+        
+        
+def set_batch_wait(arg):
+     next_batch_image.set(not next_batch_image.get())
+
 if __name__ == "__main__":
     # Setup GUI
     print ("Loading GUI")
@@ -210,8 +265,14 @@ if __name__ == "__main__":
 
     controls = tk.Frame(root)
     controls.pack(side = "left")
+
+    next_batch_image = tk.BooleanVar()
+    root.bind('<Key>',set_batch_wait)
     
-    run_detection = tk.Button(controls ,text="Load Image", command=run_detection)
+    run_detection = tk.Button(controls ,text="Load Single Image", command=run_detection_single)
+    run_detection.pack(side = "top")
+
+    run_detection = tk.Button(controls ,text="Load Directory", command=run_detection_batch)
     run_detection.pack(side = "top")
 
     start_live = tk.Button(controls,text="Start Live Feed", command=start_live_detection)
